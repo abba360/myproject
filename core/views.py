@@ -117,18 +117,30 @@ def search_view(request):
 # logic
 
 
-def checkout_order(request):
-    # first create an order
-    order = models.CartOrder.objects.create(user=request.user)
+def category_view(request, name="all"):
+    products = models.Product.objects.all()
+    categories = models.Category.objects.all()
 
+    if name != "all":
+        products = products.filter(category__title=name)
+
+    context = {"product": products, "categories": categories}
+    return render(request, "core/shop.html", context)
+
+
+def checkout_order(request):
     # get all the cart items
     cart_items = request.user.cart.cartitem_set.all()
 
-    # replicate the cart items to order items and delete them from the cart
-    for item in cart_items:
-        models.CartOrderItems.objects.create(
-            order=order, product=item, qty=item.quantity, price=item.product.price
-        )
-        item.delete()
+    if cart_items.count():
+        # first create an order
+        order = models.CartOrder.objects.create(user=request.user)
+
+        # replicate the cart items to order items and delete them from the cart
+        for item in cart_items:
+            models.CartOrderItems.objects.create(
+                order=order, product=item, qty=item.quantity, price=item.product.price
+            )
+            item.delete()
 
     return redirect("core:index")
